@@ -1,0 +1,58 @@
+export const archivePhotos = [
+  {
+    id: "01",
+    image: "/images/archive/01.jpg",
+    className: "md:col-span-5 md:row-span-2",
+    height: "h-[420px] md:h-full",
+    position: "object-center",
+  },
+  {
+    id: "02",
+    image: "/images/archive/02.jpg",
+    className: "md:col-span-3",
+    height: "h-[300px]",
+    position: "object-center",
+  },
+  {
+    id: "03",
+    image: "/images/archive/03.jpg",
+    className: "md:col-span-4",
+    height: "h-[300px]",
+    position: "object-center",
+  },
+  {
+    id: "04",
+    image: "/images/archive/04.jpg",
+    className: "md:col-span-4",
+    height: "h-[340px]",
+    position: "object-center",
+  },
+  {
+    id: "05",
+    image: "/images/archive/05.jpg",
+    className: "md:col-span-3",
+    height: "h-[340px]",
+    position: "object-center",
+  },
+  {
+    id: "06",
+    image: "/images/archive/06.jpg",
+    className: "md:col-span-7",
+    height: "h-[380px]",
+    position: "object-center",
+  },
+  {
+    id: "07",
+    image: "/images/archive/07.jpg",
+    className: "md:col-span-5",
+    height: "h-[380px]",
+    position: "object-center",
+  },
+  {
+    id: "08",
+    image: "/images/archive/08.jpg",
+    className: "md:col-span-12",
+    height: "h-[420px] md:h-[560px]",
+    position: "object-center",
+  },
+];

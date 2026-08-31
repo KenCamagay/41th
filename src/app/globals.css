@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3efe7;
+  --paper-light: #faf8f3;
+  --ink: #171717;
+  --muted: #77716a;
+  --wine: #7a263a;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inter), sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(122, 38, 58, 0.18);
+}
+
+.font-display {
+  font-family: var(--font-cormorant), serif;
+}
+
+/* Very subtle printed-paper texture */
+.paper-texture {
+  position: relative;
+}
+
+.paper-texture::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  opacity: 0.035;
+
+  background-image:
+    radial-gradient(circle at 10% 20%, #000 0.5px, transparent 0.7px),
+    radial-gradient(circle at 80% 30%, #000 0.4px, transparent 0.6px),
+    radial-gradient(circle at 40% 80%, #000 0.5px, transparent 0.7px);
+
+  background-size:
+    11px 13px,
+    17px 19px,
+    23px 29px;
+}
+
+/* Small editorial label */
+.chapter-label {
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+/* Manga-style imperfect line */
+.rough-line {
+  height: 1px;
+  background: var(--ink);
+  transform: rotate(-0.3deg);
+  opacity: 0.75;
+}
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.font-handwriting {
+  font-family: var(--font-handwriting), cursive;
+}

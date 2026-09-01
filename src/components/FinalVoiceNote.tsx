@@ -80,6 +80,7 @@ export default function FinalVoiceNote() {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [waveformStarted, setWaveformStarted] = useState(false);
   const [waveformReady, setWaveformReady] = useState(false);
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
@@ -592,32 +593,27 @@ export default function FinalVoiceNote() {
         {/* SMOOTH VOICE WAVEFORM */}
         {/* ================================= */}
 
-        <motion.div
-        onClick={seekAudio}
-        animate={
-            isPlaying
-            ? {
-                scaleY: [1, 1.018, 0.99, 1.012, 1],
-                }
-            : {
-                scaleY: 1,
-                }
-        }
-        transition={{
-            duration: 3.2,
-            repeat: isPlaying ? Infinity : 0,
-            ease: "easeInOut",
+     <motion.div
+        onViewportEnter={() => {
+          if (!waveformStarted) {
+            setWaveformStarted(true);
+          }
         }}
-        className="
-            relative
-            mx-auto
-            mt-14
-            h-[110px]
-            max-w-3xl
-            cursor-pointer
-            md:h-[130px]
-        "
-        >
+        viewport={{
+          once: true,
+          amount: 0.8,
+        }}
+        onClick={waveformReady ? seekAudio : undefined}
+        className={`
+          relative
+          mx-auto
+          mt-14
+          h-[110px]
+          max-w-3xl
+          md:h-[130px]
+          ${waveformReady ? "cursor-pointer" : "cursor-default"}
+        `}
+      >
         <svg
             viewBox="0 0 1000 140"
             preserveAspectRatio="none"
@@ -664,53 +660,64 @@ export default function FinalVoiceNote() {
             opacity="0.045"
             />
 
-            {/* Full inactive waveform */}
-           <motion.path
-              ref={waveformRef}
-              d={waveformPath}
-              fill="none"
-              stroke="#171717"
-              strokeWidth="1.45"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+        {/* ================================= */}
+        {/* INTRO - waveform being drawn */}
+        {/* ================================= */}
 
-              initial={{
-                pathLength: 0,
-                opacity: 0,
-                stroke: "#7a263a",
-              }}
+        {waveformStarted && !waveformReady && (
+          <motion.path
+            ref={waveformRef}
+            d={waveformPath}
+            fill="none"
+            stroke="#7a263a"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{
+              pathLength: 0,
+              opacity: 0.7,
+            }}
+            animate={{
+              pathLength: 1,
+              opacity: 0.7,
+            }}
+            transition={{
+              pathLength: {
+                duration: 3.8,
+                delay: 0.4,
+                ease: "linear",
+              },
+            }}
+            onAnimationComplete={() => {
+              setWaveformReady(true);
+            }}
+          />
+        )}
 
-              whileInView={{
-                pathLength: 1,
-                opacity: 0.15,
-                stroke: "#171717",
-              }}
+        {/* ================================= */}
+        {/* FINISHED / inactive waveform */}
+        {/* ================================= */}
 
-              viewport={{
-                once: true,
-                amount: 0.7,
-              }}
-
-              transition={{
-                pathLength: {
-                  duration: 2.8,
-                  ease: [0.22, 1, 0.36, 1],
-                },
-
-                opacity: {
-                  duration: 2.8,
-                },
-
-                stroke: {
-                  delay: 2.1,
-                  duration: 0.7,
-                },
-              }}
-
-              onAnimationComplete={() => {
-                setWaveformReady(true);
-              }}
-            />
+        {waveformReady && (
+          <motion.path
+            ref={waveformRef}
+            d={waveformPath}
+            fill="none"
+            stroke="#171717"
+            strokeWidth="1.45"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{
+              opacity: 0.7,
+            }}
+            animate={{
+              opacity: 0.15,
+            }}
+            transition={{
+              duration: 0.8,
+            }}
+          />
+        )}   
 
             {/* Played portion */}
            {waveformReady && (

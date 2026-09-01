@@ -68,22 +68,64 @@ const waveformPath = `
   C989 72 995 70 1000 70
 `;
 
+type SparkFlight = {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+};
+
 export default function FinalVoiceNote() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-    const waveformRef = useRef<SVGPathElement | null>(null);
+  const waveformRef = useRef<SVGPathElement | null>(null);
+  const waveformAreaRef = useRef<HTMLDivElement | null>(null);
+  const flowerTargetRef = useRef<HTMLDivElement | null>(null);
 
-    const [lightPoint, setLightPoint] = useState({
+  const [lightPoint, setLightPoint] = useState({
     x: 0,
     y: 70,
-    });
+  });
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [finished, setFinished] = useState(false);
+
   const [waveformStarted, setWaveformStarted] = useState(false);
   const [waveformReady, setWaveformReady] = useState(false);
+
+  const [audioEnded, setAudioEnded] = useState(false);
+  const [flowerBloomed, setFlowerBloomed] = useState(false);
+  const [finished, setFinished] = useState(false);
+
+  const [sparkFlight, setSparkFlight] = useState<SparkFlight | null>(null);
+
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
+
+  const launchSpark = () => {
+    const waveformArea = waveformAreaRef.current;
+    const flowerTarget = flowerTargetRef.current;
+
+    if (!waveformArea || !flowerTarget) {
+      setFlowerBloomed(true);
+
+      window.setTimeout(() => {
+        setFinished(true);
+      }, 450);
+
+      return;
+    }
+
+    const waveformRect = waveformArea.getBoundingClientRect();
+    const flowerRect = flowerTarget.getBoundingClientRect();
+
+    setSparkFlight({
+      startX: waveformRect.right - 3,
+      startY: waveformRect.top + waveformRect.height * 0.5,
+      endX: flowerRect.left + flowerRect.width * 0.52,
+      endY: flowerRect.top + flowerRect.height * 0.14,
+    });
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -91,7 +133,6 @@ export default function FinalVoiceNote() {
     if (!audio) return;
 
     const handleLoadedMetadata = () => {
-      console.log("Audio loaded:", audio.duration);
       setDuration(audio.duration);
     };
 
@@ -101,8 +142,13 @@ export default function FinalVoiceNote() {
 
     const handleEnded = () => {
       setIsPlaying(false);
-      setFinished(true);
       setCurrentTime(audio.duration);
+      setAudioEnded(true);
+
+      // Let the light rest at the waveform endpoint first.
+      window.setTimeout(() => {
+        launchSpark();
+      }, 650);
     };
 
     const handleError = () => {
@@ -112,7 +158,7 @@ export default function FinalVoiceNote() {
         "networkState:",
         audio.networkState,
         "readyState:",
-        audio.readyState
+        audio.readyState,
       );
     };
 
@@ -121,7 +167,6 @@ export default function FinalVoiceNote() {
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("error", handleError);
 
-    // Explicitly tell the browser to load the <source>
     audio.load();
 
     return () => {
@@ -133,7 +178,7 @@ export default function FinalVoiceNote() {
   }, []);
 
   useEffect(() => {
-    let animationFrame: number;
+    let animationFrame = 0;
 
     const updateProgress = () => {
       const audio = audioRef.current;
@@ -154,27 +199,24 @@ export default function FinalVoiceNote() {
     };
   }, [isPlaying]);
 
-    useEffect(() => {
+  useEffect(() => {
     const path = waveformRef.current;
 
     if (!path) return;
 
     const totalLength = path.getTotalLength();
-
-    const point = path.getPointAtLength(
-        totalLength * (progress / 100)
-    );
+    const point = path.getPointAtLength(totalLength * (progress / 100));
 
     setLightPoint({
-        x: point.x,
-        y: point.y,
+      x: point.x,
+      y: point.y,
     });
-    }, [progress]);
+  }, [progress, waveformReady]);
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
 
-    if (!audio) return;
+    if (!audio || !waveformReady) return;
 
     if (!audio.paused) {
       audio.pause();
@@ -182,14 +224,16 @@ export default function FinalVoiceNote() {
       return;
     }
 
-    if (finished) {
+    if (audioEnded || finished) {
       audio.currentTime = 0;
       setCurrentTime(0);
+      setAudioEnded(false);
       setFinished(false);
+      setFlowerBloomed(false);
+      setSparkFlight(null);
     }
 
     try {
-      // If the browser hasn't loaded enough yet
       if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
         audio.load();
 
@@ -228,7 +272,11 @@ export default function FinalVoiceNote() {
 
     audio.currentTime = 0;
     setCurrentTime(0);
+
+    setAudioEnded(false);
     setFinished(false);
+    setFlowerBloomed(false);
+    setSparkFlight(null);
 
     try {
       await audio.play();
@@ -237,38 +285,104 @@ export default function FinalVoiceNote() {
       console.error("Unable to replay voice note:", error);
     }
   };
+
   const seekAudio = (event: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
 
-    if (!audio || !duration) return;
+    if (!audio || !duration || audioEnded || sparkFlight) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
 
-    const percentage = Math.max(
-      0,
-      Math.min(clickX / rect.width, 1),
-    );
+    const percentage = Math.max(0, Math.min(clickX / rect.width, 1));
 
     audio.currentTime = percentage * duration;
     setCurrentTime(audio.currentTime);
-
-    if (audio.currentTime < duration - 0.5) {
-      setFinished(false);
-    }
   };
+
+  const showWaveformDot =
+    progress > 0 &&
+    (progress < 100 || (audioEnded && !sparkFlight && !flowerBloomed));
 
   return (
     <section className="relative overflow-hidden px-6 py-32 md:px-12 md:py-48">
-      <audio
-        ref={audioRef}
-        preload="auto"
-      >
-        <source
-          src="/audio/letter.mp3"
-          type="audio/mpeg"
-        />
+      <audio ref={audioRef} preload="auto">
+        <source src="/audio/letter.mp3" type="audio/mpeg" />
       </audio>
+
+      {/* ================================= */}
+      {/* FLYING LIGHT */}
+      {/* ================================= */}
+
+      <AnimatePresence>
+        {sparkFlight && (
+          <motion.div
+            className="pointer-events-none fixed left-0 top-0 z-[80] h-3 w-3"
+            initial={{
+              x: sparkFlight.startX - 6,
+              y: sparkFlight.startY - 6,
+              opacity: 1,
+              scale: 1,
+            }}
+            animate={{
+              x: [
+                sparkFlight.startX - 6,
+                sparkFlight.startX - 65,
+                (sparkFlight.startX + sparkFlight.endX) / 2 + 45,
+                sparkFlight.endX - 6,
+              ],
+              y: [
+                sparkFlight.startY - 6,
+                sparkFlight.startY - 35,
+                (sparkFlight.startY + sparkFlight.endY) / 2 - 45,
+                sparkFlight.endY - 6,
+              ],
+              opacity: [1, 1, 1, 0.95],
+              scale: [1, 1.45, 1.1, 0.8],
+            }}
+            transition={{
+              duration: 1.8,
+              times: [0, 0.22, 0.66, 1],
+              ease: "easeInOut",
+            }}
+            onAnimationComplete={() => {
+              setFlowerBloomed(true);
+              setSparkFlight(null);
+
+              window.setTimeout(() => {
+                setFinished(true);
+              }, 550);
+            }}
+          >
+            <motion.div
+              className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7a263a]/10 blur-md"
+              animate={{
+                scale: [0.8, 1.35, 0.9],
+                opacity: [0.25, 0.55, 0.25],
+              }}
+              transition={{
+                duration: 0.9,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+
+            <motion.div
+              className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7a263a]/15 blur-sm"
+              animate={{
+                scale: [0.9, 1.25, 0.9],
+              }}
+              transition={{
+                duration: 0.75,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+
+            <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7a263a] bg-[#faf8f3]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mx-auto max-w-7xl">
         {/* Chapter line */}
@@ -408,18 +522,16 @@ export default function FinalVoiceNote() {
             mx-auto
             mt-28
             max-w-4xl
+            pb-20
             md:mt-36
+            md:pb-28
           "
         >
           {/* Top labels */}
           <div className="mb-7 flex items-center justify-between">
-            <p className="chapter-label text-black/25">
-              voice note / 01
-            </p>
+            <p className="chapter-label text-black/25">voice note / 01</p>
 
-            <p className="chapter-label text-black/25">
-              for your ears only
-            </p>
+            <p className="chapter-label text-black/25">for your ears only</p>
           </div>
 
           {/* Player */}
@@ -437,19 +549,15 @@ export default function FinalVoiceNote() {
             {/* Play button */}
             <div className="flex justify-center">
               <motion.button
-                disabled={!waveformReady}
+                disabled={!waveformReady || Boolean(sparkFlight)}
                 whileHover={{
-                  scale: 1.04,
+                  scale: waveformReady && !sparkFlight ? 1.04 : 1,
                 }}
                 whileTap={{
-                  scale: 0.96,
+                  scale: waveformReady && !sparkFlight ? 0.96 : 1,
                 }}
                 onClick={toggleAudio}
-                aria-label={
-                  isPlaying
-                    ? "Pause voice note"
-                    : "Play voice note"
-                }
+                aria-label={isPlaying ? "Pause voice note" : "Play voice note"}
                 className="
                   group
                   relative
@@ -547,11 +655,17 @@ export default function FinalVoiceNote() {
             <AnimatePresence mode="wait">
               <motion.p
                 key={
-                  finished
-                    ? "finished"
-                    : isPlaying
-                      ? "playing"
-                      : "paused"
+                  !waveformReady
+                    ? "preserving"
+                    : audioEnded && !finished
+                      ? "sending"
+                      : finished
+                        ? "finished"
+                        : isPlaying
+                          ? "playing"
+                          : currentTime > 0
+                            ? "paused"
+                            : "ready"
                 }
                 initial={{
                   opacity: 0,
@@ -575,214 +689,219 @@ export default function FinalVoiceNote() {
                   text-black/30
                 "
               >
-               {!waveformReady
-                ? "preserving / voice note 01"
-                : finished
-                  ? "thank you for listening."
-                  : isPlaying
-                    ? "playing / something I wanted you to hear"
-                    : currentTime > 0
-                      ? "paused / whenever you're ready"
-                      : "press play when you're ready"}
+                {!waveformReady
+                  ? "preserving / voice note 01"
+                  : audioEnded && !finished
+                    ? "message complete / one last thing..."
+                    : finished
+                      ? "thank you for listening."
+                      : isPlaying
+                        ? "playing / something I wanted you to hear"
+                        : currentTime > 0
+                          ? "paused / whenever you're ready"
+                          : "press play when you're ready"}
               </motion.p>
-
-              {/* Status period */}
             </AnimatePresence>
 
-        {/* ================================= */}
-        {/* SMOOTH VOICE WAVEFORM */}
-        {/* ================================= */}
+            {/* ================================= */}
+            {/* SMOOTH VOICE WAVEFORM */}
+            {/* ================================= */}
 
-     <motion.div
-        onViewportEnter={() => {
-          if (!waveformStarted) {
-            setWaveformStarted(true);
-          }
-        }}
-        viewport={{
-          once: true,
-          amount: 0.8,
-        }}
-        onClick={waveformReady ? seekAudio : undefined}
-        className={`
-          relative
-          mx-auto
-          mt-14
-          h-[110px]
-          max-w-3xl
-          md:h-[130px]
-          ${waveformReady ? "cursor-pointer" : "cursor-default"}
-        `}
-      >
-        <svg
-            viewBox="0 0 1000 140"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full overflow-visible"
-        >
-            <defs>
-            {/* Progress clipping */}
-            <clipPath id="voiceProgressClip">
-                <rect
-                x="0"
-                y="0"
-                width={progress * 10}
-                height="140"
-                />
-            </clipPath>
-
-            {/* Glow */}
-            <filter
-                id="voiceGlow"
-                x="-500%"
-                y="-500%"
-                width="1000%"
-                height="1000%"
-            >
-                <feGaussianBlur
-                stdDeviation="6"
-                result="blur"
-                />
-
-                <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-                </feMerge>
-            </filter>
-            </defs>
-
-            {/* Very faint center line */}
-            <path
-            d="M0 70C250 69 750 71 1000 70"
-            fill="none"
-            stroke="#171717"
-            strokeWidth="0.6"
-            strokeLinecap="round"
-            opacity="0.045"
-            />
-
-        {/* ================================= */}
-        {/* INTRO - waveform being drawn */}
-        {/* ================================= */}
-
-        {waveformStarted && !waveformReady && (
-          <motion.path
-            ref={waveformRef}
-            d={waveformPath}
-            fill="none"
-            stroke="#7a263a"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={{
-              pathLength: 0,
-              opacity: 0.7,
-            }}
-            animate={{
-              pathLength: 1,
-              opacity: 0.7,
-            }}
-            transition={{
-              pathLength: {
-                duration: 3.8,
-                delay: 0.4,
-                ease: "linear",
-              },
-            }}
-            onAnimationComplete={() => {
-              setWaveformReady(true);
-            }}
-          />
-        )}
-
-        {/* ================================= */}
-        {/* FINISHED / inactive waveform */}
-        {/* ================================= */}
-
-        {waveformReady && (
-          <motion.path
-            ref={waveformRef}
-            d={waveformPath}
-            fill="none"
-            stroke="#171717"
-            strokeWidth="1.45"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={{
-              opacity: 0.7,
-            }}
-            animate={{
-              opacity: 0.15,
-            }}
-            transition={{
-              duration: 0.8,
-            }}
-          />
-        )}   
-
-            {/* Played portion */}
-           {waveformReady && (
-              <path
-                d={waveformPath}
-                fill="none"
-                stroke="#7a263a"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                clipPath="url(#voiceProgressClip)"
-              />
-            )}
-
-            {/* Glowing point following waveform */}
-            {progress > 0 && progress < 100 && (
-            <>
-                {/* Outer soft glow */}
-                <motion.circle
-                cx={lightPoint.x}
-                cy={lightPoint.y}
-                r="18"
-                fill="#7a263a"
-                opacity="0.08"
-                filter="url(#voiceGlow)"
-                />
-
-                {/* Inner glow */}
-                <motion.circle
-                cx={lightPoint.x}
-                cy={lightPoint.y}
-                r="8"
-                fill="#7a263a"
-                opacity="0.18"
-                filter="url(#voiceGlow)"
-                />
-
-                {/* Light point */}
-                <motion.circle
-                cx={lightPoint.x}
-                cy={lightPoint.y}
-                fill="#faf8f3"
-                stroke="#7a263a"
-                strokeWidth="2"
-                animate={
-                    isPlaying
-                    ? {
-                        r: [3.2, 4.3, 3.2],
-                        opacity: [0.8, 1, 0.8],
-                        }
-                    : {
-                        r: 3.4,
-                        opacity: 0.85,
-                        }
+            <motion.div
+              ref={waveformAreaRef}
+              onViewportEnter={() => {
+                if (!waveformStarted) {
+                  setWaveformStarted(true);
                 }
-                transition={{
-                    duration: 1.25,
-                    repeat: isPlaying ? Infinity : 0,
-                    ease: "easeInOut",
-                }}
+              }}
+              viewport={{
+                once: true,
+                amount: 0.8,
+              }}
+              onClick={
+                waveformReady && !audioEnded && !sparkFlight
+                  ? seekAudio
+                  : undefined
+              }
+              className={`
+                relative
+                mx-auto
+                mt-14
+                h-[110px]
+                max-w-3xl
+                md:h-[130px]
+                ${
+                  waveformReady && !audioEnded && !sparkFlight
+                    ? "cursor-pointer"
+                    : "cursor-default"
+                }
+              `}
+            >
+              <svg
+                viewBox="0 0 1000 140"
+                preserveAspectRatio="none"
+                className="absolute inset-0 h-full w-full overflow-visible"
+              >
+                <defs>
+                  <clipPath id="voiceProgressClip">
+                    <rect
+                      x="0"
+                      y="0"
+                      width={progress * 10}
+                      height="140"
+                    />
+                  </clipPath>
+
+                  <filter
+                    id="voiceGlow"
+                    x="-500%"
+                    y="-500%"
+                    width="1000%"
+                    height="1000%"
+                  >
+                    <feGaussianBlur stdDeviation="6" result="blur" />
+
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                {/* Very faint center line */}
+                <path
+                  d="M0 70C250 69 750 71 1000 70"
+                  fill="none"
+                  stroke="#171717"
+                  strokeWidth="0.6"
+                  strokeLinecap="round"
+                  opacity="0.045"
                 />
-            </>
-            )}
-        </svg>
-        </motion.div>
+
+                {/* Intro waveform being drawn */}
+                {waveformStarted && !waveformReady && (
+                  <motion.path
+                    ref={waveformRef}
+                    d={waveformPath}
+                    fill="none"
+                    stroke="#7a263a"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{
+                      pathLength: 0,
+                      opacity: 0.7,
+                    }}
+                    animate={{
+                      pathLength: 1,
+                      opacity: 0.7,
+                    }}
+                    transition={{
+                      pathLength: {
+                        duration: 3.8,
+                        delay: 0.4,
+                        ease: "linear",
+                      },
+                    }}
+                    onAnimationComplete={() => {
+                      setWaveformReady(true);
+                    }}
+                  />
+                )}
+
+                {/* Finished inactive waveform */}
+                {waveformReady && (
+                  <motion.path
+                    ref={waveformRef}
+                    d={waveformPath}
+                    fill="none"
+                    stroke="#171717"
+                    strokeWidth="1.45"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{
+                      opacity: 0.7,
+                    }}
+                    animate={{
+                      opacity: 0.15,
+                    }}
+                    transition={{
+                      duration: 0.8,
+                    }}
+                  />
+                )}
+
+                {/* Played portion */}
+                {waveformReady && (
+                  <path
+                    d={waveformPath}
+                    fill="none"
+                    stroke="#7a263a"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    clipPath="url(#voiceProgressClip)"
+                  />
+                )}
+
+                {/* Glowing point following waveform */}
+                {showWaveformDot && (
+                  <>
+                    <motion.circle
+                      cx={lightPoint.x}
+                      cy={lightPoint.y}
+                      r="18"
+                      fill="#7a263a"
+                      opacity="0.08"
+                      filter="url(#voiceGlow)"
+                    />
+
+                    <motion.circle
+                      cx={lightPoint.x}
+                      cy={lightPoint.y}
+                      r="8"
+                      fill="#7a263a"
+                      opacity="0.18"
+                      filter="url(#voiceGlow)"
+                    />
+
+                    <motion.circle
+                      cx={lightPoint.x}
+                      cy={lightPoint.y}
+                      fill="#faf8f3"
+                      stroke="#7a263a"
+                      strokeWidth="2"
+                      animate={
+                        audioEnded && !sparkFlight
+                          ? {
+                              r: [4, 7, 4],
+                              opacity: [0.8, 1, 0.8],
+                            }
+                          : isPlaying
+                            ? {
+                                r: [3.2, 4.3, 3.2],
+                                opacity: [0.8, 1, 0.8],
+                              }
+                            : {
+                                r: 3.4,
+                                opacity: 0.85,
+                              }
+                      }
+                      transition={{
+                        duration:
+                          audioEnded && !sparkFlight ? 0.7 : 1.25,
+                        repeat:
+                          isPlaying || (audioEnded && !sparkFlight)
+                            ? Infinity
+                            : 0,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  </>
+                )}
+              </svg>
+            </motion.div>
+
             {/* Timer */}
             <div
               className="
@@ -834,11 +953,7 @@ export default function FinalVoiceNote() {
                     hover:text-[#7a263a]
                   "
                 >
-                  <RotateCcw
-                    size={13}
-                    strokeWidth={1}
-                  />
-
+                  <RotateCcw size={13} strokeWidth={1} />
                   listen again
                 </motion.button>
               )}
@@ -855,6 +970,62 @@ export default function FinalVoiceNote() {
           >
             recorded only for you
           </p>
+
+          {/* ================================= */}
+          {/* FLOWER TARGET */}
+          {/* ================================= */}
+
+          <div
+            ref={flowerTargetRef}
+            className="
+              pointer-events-none
+              absolute
+              -bottom-20
+              left-[2%]
+              h-36
+              w-28
+              md:-bottom-28
+              md:left-[4%]
+              md:h-48
+              md:w-40
+            "
+          >
+            <GrowingDoodle
+              stage={flowerBloomed ? 6 : 5}
+              className="inset-0 h-full w-full opacity-45"
+            />
+
+            <AnimatePresence>
+              {flowerBloomed && (
+                <motion.div
+                  initial={{
+                    scale: 0.2,
+                    opacity: 0,
+                  }}
+                  animate={{
+                    scale: [0.2, 1.3, 1],
+                    opacity: [0, 0.18, 0],
+                  }}
+                  transition={{
+                    duration: 1.1,
+                    ease: "easeOut",
+                  }}
+                  className="
+                    absolute
+                    left-[52%]
+                    top-[14%]
+                    h-16
+                    w-16
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-[#7a263a]/40
+                  "
+                />
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
 
         {/* ================================= */}
@@ -873,7 +1044,6 @@ export default function FinalVoiceNote() {
                 y: 0,
               }}
               transition={{
-                delay: 0.6,
                 duration: 1.3,
                 ease: [0.16, 1, 0.3, 1],
               }}
@@ -885,9 +1055,7 @@ export default function FinalVoiceNote() {
                 md:mt-72
               "
             >
-              <p className="chapter-label text-black/30">
-                chapter 41
-              </p>
+              <p className="chapter-label text-black/30">chapter 41</p>
 
               <motion.h3
                 initial={{
@@ -899,7 +1067,7 @@ export default function FinalVoiceNote() {
                   letterSpacing: "-0.04em",
                 }}
                 transition={{
-                  delay: 1,
+                  delay: 0.45,
                   duration: 1.3,
                 }}
                 className="
@@ -951,7 +1119,7 @@ export default function FinalVoiceNote() {
                       pathLength: 1,
                     }}
                     transition={{
-                      delay: 2,
+                      delay: 1.3,
                       duration: 1.5,
                     }}
                   />
@@ -968,7 +1136,7 @@ export default function FinalVoiceNote() {
                   y: 0,
                 }}
                 transition={{
-                  delay: 3.2,
+                  delay: 2.5,
                   duration: 1,
                 }}
                 className="
@@ -992,7 +1160,7 @@ export default function FinalVoiceNote() {
                   opacity: 1,
                 }}
                 transition={{
-                  delay: 4.2,
+                  delay: 3.5,
                   duration: 1.2,
                 }}
                 className="mt-40"
@@ -1022,7 +1190,7 @@ export default function FinalVoiceNote() {
                       pathLength: 1,
                     }}
                     transition={{
-                      delay: 4.5,
+                      delay: 3.8,
                       duration: 1.5,
                     }}
                   />
@@ -1036,7 +1204,7 @@ export default function FinalVoiceNote() {
                     opacity: 1,
                   }}
                   transition={{
-                    delay: 5,
+                    delay: 4.3,
                     duration: 1,
                   }}
                   className="
@@ -1054,10 +1222,6 @@ export default function FinalVoiceNote() {
           )}
         </AnimatePresence>
       </div>
-      <GrowingDoodle
-        stage={6}
-        className="bottom-[1%] left-[6%] h-40 w-32 opacity-40 md:h-52 md:w-44"
-      />
     </section>
   );
 }

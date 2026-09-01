@@ -32,7 +32,7 @@ export const languageNotes = [
   },
 
   {
-    text: "mcdo",
+    text: "San Tayo Kakain",
     note: "you already know what I'm talking about.",
     position: "md:left-[10%] md:top-[62%]",
     rotation: "rotate-2",

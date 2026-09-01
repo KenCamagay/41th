@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { languageNotes } from "@/data/language";
-
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 function HandwrittenText({
   text,
@@ -338,6 +338,10 @@ export default function OurLanguage() {
           </svg>
         </motion.div>
       </div>
+      <GrowingDoodle
+        stage={5}
+        className="bottom-[3%] right-[7%] h-36 w-28 opacity-35 md:h-48 md:w-40"
+      />
     </section>
   );
 }

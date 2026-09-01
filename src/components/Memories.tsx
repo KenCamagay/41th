@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { memories } from "@/data/memories";
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 export default function Memories() {
   return (
@@ -164,6 +165,10 @@ export default function Memories() {
           ))}
         </div>
       </div>
+      <GrowingDoodle
+        stage={2}
+        className="bottom-[4%] left-[5%] h-28 w-24 opacity-30 md:h-36 md:w-28"
+      />
     </section>
   );
 }

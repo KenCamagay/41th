@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Pause, Play, RotateCcw } from "lucide-react";
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "00:00";
@@ -16,47 +17,55 @@ function formatTime(seconds: number) {
 const waveformPath = `
   M0 70
 
-  C18 70 28 68 40 58
-  C52 48 58 38 71 40
-  C84 42 87 64 100 69
+  C12 70 18 67 26 61
+  C34 55 40 57 47 65
+  C54 73 60 78 68 74
+  C76 70 82 61 90 58
+  C98 55 104 62 112 69
 
-  C114 74 124 75 136 85
-  C148 95 152 108 166 106
-  C181 104 180 79 194 72
+  C120 76 127 80 135 74
+  C143 68 148 53 157 50
+  C166 47 171 63 180 70
+  C189 77 196 83 205 78
+  C214 73 219 61 228 59
+  C237 57 243 66 252 71
 
-  C208 65 218 66 229 55
-  C240 44 244 30 258 32
-  C273 34 272 61 287 68
+  C261 76 268 76 277 67
+  C286 58 292 45 301 47
+  C310 49 315 64 324 70
+  C333 76 340 88 349 86
+  C358 84 365 68 374 64
+  C383 60 389 67 398 72
 
-  C302 75 312 76 324 89
-  C336 102 340 116 355 113
-  C370 110 369 81 383 72
+  C407 77 414 78 423 69
+  C432 60 438 55 447 57
+  C456 59 462 69 471 72
+  C480 75 487 72 496 64
+  C505 56 511 51 520 54
+  C529 57 535 70 544 73
 
-  C398 63 409 65 421 53
-  C433 41 436 26 450 28
-  C465 30 464 60 480 68
+  C553 76 560 83 569 79
+  C578 75 584 63 593 60
+  C602 57 608 66 617 71
+  C626 76 633 79 642 73
+  C651 67 657 52 666 50
+  C675 48 681 63 690 69
 
-  C496 76 506 77 517 88
-  C528 99 532 107 545 105
-  C559 103 561 80 576 72
+  C699 75 706 85 715 83
+  C724 81 730 67 739 63
+  C748 59 754 66 763 72
+  C772 78 779 78 788 69
+  C797 60 803 55 812 57
+  C821 59 827 70 836 73
 
-  C591 64 601 65 613 57
-  C625 49 630 42 643 44
-  C657 46 660 65 674 70
+  C845 76 852 73 861 64
+  C870 55 876 47 885 49
+  C894 51 900 66 909 71
+  C918 76 925 82 934 78
+  C943 74 949 63 958 61
+  C967 59 973 67 982 70
 
-  C689 75 700 77 712 91
-  C724 105 728 119 743 116
-  C758 113 758 82 773 72
-
-  C788 62 799 63 811 51
-  C823 39 827 25 841 27
-  C856 29 856 60 871 68
-
-  C886 76 897 76 908 85
-  C920 94 924 104 937 102
-  C951 100 954 78 968 72
-
-  C981 67 991 70 1000 70
+  C989 72 995 70 1000 70
 `;
 
 export default function FinalVoiceNote() {
@@ -71,7 +80,7 @@ export default function FinalVoiceNote() {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [finished, setFinished] = useState(false);
-
+  const [waveformReady, setWaveformReady] = useState(false);
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
 
@@ -81,6 +90,7 @@ export default function FinalVoiceNote() {
     if (!audio) return;
 
     const handleLoadedMetadata = () => {
+      console.log("Audio loaded:", audio.duration);
       setDuration(audio.duration);
     };
 
@@ -94,16 +104,54 @@ export default function FinalVoiceNote() {
       setCurrentTime(audio.duration);
     };
 
+    const handleError = () => {
+      console.error(
+        "Audio error:",
+        audio.error,
+        "networkState:",
+        audio.networkState,
+        "readyState:",
+        audio.readyState
+      );
+    };
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+
+    // Explicitly tell the browser to load the <source>
+    audio.load();
 
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
     };
   }, []);
+
+  useEffect(() => {
+    let animationFrame: number;
+
+    const updateProgress = () => {
+      const audio = audioRef.current;
+
+      if (audio) {
+        setCurrentTime(audio.currentTime);
+      }
+
+      animationFrame = requestAnimationFrame(updateProgress);
+    };
+
+    if (isPlaying) {
+      animationFrame = requestAnimationFrame(updateProgress);
+    }
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [isPlaying]);
 
     useEffect(() => {
     const path = waveformRef.current;
@@ -127,18 +175,48 @@ export default function FinalVoiceNote() {
 
     if (!audio) return;
 
-    if (audio.paused) {
-      if (finished) {
-        audio.currentTime = 0;
-        setCurrentTime(0);
-        setFinished(false);
+    if (!audio.paused) {
+      audio.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    if (finished) {
+      audio.currentTime = 0;
+      setCurrentTime(0);
+      setFinished(false);
+    }
+
+    try {
+      // If the browser hasn't loaded enough yet
+      if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        audio.load();
+
+        await new Promise<void>((resolve, reject) => {
+          const handleCanPlay = () => {
+            cleanup();
+            resolve();
+          };
+
+          const handleError = () => {
+            cleanup();
+            reject(audio.error);
+          };
+
+          const cleanup = () => {
+            audio.removeEventListener("canplay", handleCanPlay);
+            audio.removeEventListener("error", handleError);
+          };
+
+          audio.addEventListener("canplay", handleCanPlay);
+          audio.addEventListener("error", handleError);
+        });
       }
 
       await audio.play();
       setIsPlaying(true);
-    } else {
-      audio.pause();
-      setIsPlaying(false);
+    } catch (error) {
+      console.error("Unable to play voice note:", error);
     }
   };
 
@@ -151,10 +229,13 @@ export default function FinalVoiceNote() {
     setCurrentTime(0);
     setFinished(false);
 
-    await audio.play();
-    setIsPlaying(true);
+    try {
+      await audio.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error("Unable to replay voice note:", error);
+    }
   };
-
   const seekAudio = (event: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
 
@@ -180,9 +261,13 @@ export default function FinalVoiceNote() {
     <section className="relative overflow-hidden px-6 py-32 md:px-12 md:py-48">
       <audio
         ref={audioRef}
-        src="/audio/letter.mp3"
-        preload="metadata"
-      />
+        preload="auto"
+      >
+        <source
+          src="/audio/letter.mp3"
+          type="audio/mpeg"
+        />
+      </audio>
 
       <div className="mx-auto max-w-7xl">
         {/* Chapter line */}
@@ -351,6 +436,7 @@ export default function FinalVoiceNote() {
             {/* Play button */}
             <div className="flex justify-center">
               <motion.button
+                disabled={!waveformReady}
                 whileHover={{
                   scale: 1.04,
                 }}
@@ -373,6 +459,9 @@ export default function FinalVoiceNote() {
                   items-center
                   justify-center
                   rounded-full
+                  transition-opacity
+                  disabled:cursor-default
+                  disabled:opacity-30
                   md:h-28
                   md:w-28
                 "
@@ -485,7 +574,9 @@ export default function FinalVoiceNote() {
                   text-black/30
                 "
               >
-                {finished
+               {!waveformReady
+                ? "preserving / voice note 01"
+                : finished
                   ? "thank you for listening."
                   : isPlaying
                     ? "playing / something I wanted you to hear"
@@ -574,27 +665,65 @@ export default function FinalVoiceNote() {
             />
 
             {/* Full inactive waveform */}
-            <path
-            ref={waveformRef}
-            d={waveformPath}
-            fill="none"
-            stroke="#171717"
-            strokeWidth="1.45"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.15"
+           <motion.path
+              ref={waveformRef}
+              d={waveformPath}
+              fill="none"
+              stroke="#171717"
+              strokeWidth="1.45"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+
+              initial={{
+                pathLength: 0,
+                opacity: 0,
+                stroke: "#7a263a",
+              }}
+
+              whileInView={{
+                pathLength: 1,
+                opacity: 0.15,
+                stroke: "#171717",
+              }}
+
+              viewport={{
+                once: true,
+                amount: 0.7,
+              }}
+
+              transition={{
+                pathLength: {
+                  duration: 2.8,
+                  ease: [0.22, 1, 0.36, 1],
+                },
+
+                opacity: {
+                  duration: 2.8,
+                },
+
+                stroke: {
+                  delay: 2.1,
+                  duration: 0.7,
+                },
+              }}
+
+              onAnimationComplete={() => {
+                setWaveformReady(true);
+              }}
             />
 
             {/* Played portion */}
-            <path
-            d={waveformPath}
-            fill="none"
-            stroke="#7a263a"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            clipPath="url(#voiceProgressClip)"
-            />
+           {waveformReady && (
+              <path
+                d={waveformPath}
+                fill="none"
+                stroke="#7a263a"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                clipPath="url(#voiceProgressClip)"
+              />
+            )}
 
             {/* Glowing point following waveform */}
             {progress > 0 && progress < 100 && (
@@ -918,6 +1047,10 @@ export default function FinalVoiceNote() {
           )}
         </AnimatePresence>
       </div>
+      <GrowingDoodle
+        stage={6}
+        className="bottom-[1%] left-[6%] h-40 w-32 opacity-40 md:h-52 md:w-44"
+      />
     </section>
   );
 }

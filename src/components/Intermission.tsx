@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 const stats = [
   {
@@ -220,6 +221,11 @@ export default function Intermission() {
           good part yet.
         </motion.p>
       </div>
+      <GrowingDoodle
+        stage={3}
+        className="bottom-[5%] right-[6%] h-32 w-28 opacity-30 md:h-40 md:w-32"
+      />
+
     </section>
   );
 }

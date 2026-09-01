@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { ArrowDown } from "lucide-react";
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 export default function Hero() {
   const goToStory = () => {
@@ -241,6 +242,10 @@ export default function Hero() {
       <p className="chapter-label absolute bottom-9 right-8 text-black/35 md:right-12">
         41 months
       </p>
+      <GrowingDoodle
+        stage={1}
+        className="bottom-[7%] right-[7%] h-20 w-16 opacity-30 md:h-28 md:w-24"
+      />
     </section>
   );
 }

@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { observations } from "@/data/observations";
+import GrowingDoodle from "@/components/GrowingDoodle";
 
 export default function Observations() {
   return (
@@ -286,6 +287,10 @@ export default function Observations() {
           </p>
         </motion.div>
       </div>
+      <GrowingDoodle
+        stage={4}
+        className="bottom-[3%] left-[7%] h-36 w-28 opacity-30 md:h-44 md:w-36"
+      />
     </section>
   );
 }

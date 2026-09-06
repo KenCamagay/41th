@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import GrowingDoodle from "@/components/GrowingDoodle";
+import StickManGift from "@/components/StickManGift";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "00:00";
@@ -303,9 +304,18 @@ export default function FinalVoiceNote() {
   const showWaveformDot =
     progress > 0 &&
     (progress < 100 || (audioEnded && !sparkFlight && !flowerBloomed));
-
+  
   return (
     <section className="relative overflow-hidden px-6 py-32 md:px-12 md:py-48">
+      <audio ref={audioRef} preload="auto">
+        <source
+          src="/audio/letter.mp3"
+          type="audio/mpeg"
+        />
+      </audio>
+
+      <StickManGift active={flowerBloomed} />
+
       <audio ref={audioRef} preload="auto">
         <source src="/audio/letter.mp3" type="audio/mpeg" />
       </audio>
@@ -351,7 +361,7 @@ export default function FinalVoiceNote() {
 
               window.setTimeout(() => {
                 setFinished(true);
-              }, 550);
+              }, 3200);
             }}
           >
             <motion.div

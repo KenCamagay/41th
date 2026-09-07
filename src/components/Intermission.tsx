@@ -91,80 +91,96 @@ export default function Intermission() {
           </motion.div>
 
          {/* Hand-drawn heart */}
-            <svg
-            viewBox="0 0 600 520"
-            fill="none"
+          <motion.div
+            animate={{
+              scale: [1, 1.045, 1, 1.025, 1, 1],
+            }}
+            transition={{
+              duration: 1.55,
+              times: [0, 0.12, 0.24, 0.36, 0.48, 1],
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{
+              transformOrigin: "center",
+            }}
             className="
-                pointer-events-none
-                absolute
-                left-1/2
-                top-[61%]
-                w-[360px]
-                -translate-x-1/2
-                -translate-y-1/2
-                md:w-[510px]
+              pointer-events-none
+              absolute
+              left-1/2
+              top-[61%]
+              w-[360px]
+              -translate-x-1/2
+              -translate-y-1/2
+              md:w-[510px]
             "
+          >
+            <svg
+              viewBox="0 0 600 520"
+              fill="none"
+              className="h-full w-full"
             >
-            <motion.path
+              <motion.path
                 d="
-                M300 445
-                C270 416 89 298 89 164
-                C89 88 143 49 202 55
-                C252 60 284 91 301 129
-                C320 88 353 59 401 55
-                C462 49 511 91 511 164
-                C511 294 333 414 300 445
+                  M300 445
+                  C270 416 89 298 89 164
+                  C89 88 143 49 202 55
+                  C252 60 284 91 301 129
+                  C320 88 353 59 401 55
+                  C462 49 511 91 511 164
+                  C511 294 333 414 300 445
                 "
                 stroke="#7a263a"
                 strokeWidth="1.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 initial={{
-                pathLength: 0,
-                opacity: 0,
+                  pathLength: 0,
+                  opacity: 0,
                 }}
                 whileInView={{
-                pathLength: 1,
-                opacity: 0.42,
+                  pathLength: 1,
+                  opacity: 0.42,
                 }}
                 viewport={{ once: true }}
                 transition={{
-                duration: 2.3,
-                delay: 0.35,
-                ease: "easeInOut",
+                  duration: 2.3,
+                  delay: 0.35,
+                  ease: "easeInOut",
                 }}
-            />
+              />
 
-            {/* Second imperfect sketch stroke */}
-            <motion.path
+              {/* Second imperfect sketch stroke */}
+              <motion.path
                 d="
-                M301 447
-                C267 412 100 294 99 166
-                C98 101 145 61 203 65
-                C251 68 282 100 301 137
-                C321 99 355 68 401 65
-                C457 60 501 101 500 166
-                C498 290 335 410 301 447
+                  M301 447
+                  C267 412 100 294 99 166
+                  C98 101 145 61 203 65
+                  C251 68 282 100 301 137
+                  C321 99 355 68 401 65
+                  C457 60 501 101 500 166
+                  C498 290 335 410 301 447
                 "
                 stroke="#7a263a"
                 strokeWidth="0.65"
                 strokeLinecap="round"
                 initial={{
-                pathLength: 0,
-                opacity: 0,
+                  pathLength: 0,
+                  opacity: 0,
                 }}
                 whileInView={{
-                pathLength: 1,
-                opacity: 0.18,
+                  pathLength: 1,
+                  opacity: 0.18,
                 }}
                 viewport={{ once: true }}
                 transition={{
-                duration: 2.6,
-                delay: 0.55,
-                ease: "easeInOut",
+                  duration: 2.6,
+                  delay: 0.55,
+                  ease: "easeInOut",
                 }}
-            />
+              />
             </svg>
+          </motion.div>
         </div>
 
         {/* Mini stats */}

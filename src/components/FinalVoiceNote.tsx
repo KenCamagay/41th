@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import GrowingDoodle from "@/components/GrowingDoodle";
-import BreezeFlowerGift from "@/components/BreezeFlowerGift";
+import BreezeFlowerGift, {
+  PremiumFinalFlower,
+} from "@/components/BreezeFlowerGift";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "00:00";
@@ -81,12 +83,22 @@ export default function FinalVoiceNote() {
   const waveformRef = useRef<SVGPathElement | null>(null);
   const waveformAreaRef = useRef<HTMLDivElement | null>(null);
   const flowerTargetRef = useRef<HTMLDivElement | null>(null);
-  
+  const finalSectionRef =
+  useRef<HTMLDivElement | null>(null);
+  const [
+    flowerAnimationRun,
+    setFlowerAnimationRun,
+  ] = useState(0);
+  const finalFlowerTargetRef =
+    useRef<HTMLDivElement | null>(null);
   const [lightPoint, setLightPoint] = useState({
     x: 0,
     y: 70,
   });
-
+   const [
+      finalFlowerLanded,
+      setFinalFlowerLanded,
+    ] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -94,11 +106,29 @@ export default function FinalVoiceNote() {
   const [waveformStarted, setWaveformStarted] = useState(false);
   const [waveformReady, setWaveformReady] = useState(false);
 
-  const [audioEnded, setAudioEnded] = useState(false);
-  const [flowerBloomed, setFlowerBloomed] = useState(false);
-  const [finished, setFinished] = useState(false);
+  const [audioEnded, setAudioEnded] =
+    useState(false);
 
-  const [sparkFlight, setSparkFlight] = useState<SparkFlight | null>(null);
+  const [flowerBloomed, setFlowerBloomed] =
+    useState(false);
+
+  const [flowerPicked, setFlowerPicked] =
+    useState(false);
+
+  const [giftPoint, setGiftPoint] =
+    useState<{
+      x: number;
+      y: number;
+    } | null>(null);
+
+  const [breezeGiftActive, setBreezeGiftActive] =
+    useState(false);
+
+  const [finished, setFinished] =
+    useState(false);
+
+  const [sparkFlight, setSparkFlight] =
+    useState<SparkFlight | null>(null);
 
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
@@ -120,12 +150,8 @@ export default function FinalVoiceNote() {
     const waveformRect = waveformArea.getBoundingClientRect();
     const flowerRect = flowerTarget.getBoundingClientRect();
     setGiftPoint({
-      x:
-        flowerRect.left +
-        flowerRect.width * 0.52,
-      y:
-        flowerRect.top +
-        flowerRect.height * 0.2,
+      x: flowerRect.left + flowerRect.width * 0.5,
+      y: flowerRect.top + flowerRect.height * 0.24,
     });
     setSparkFlight({
       startX: waveformRect.right - 3,
@@ -135,18 +161,6 @@ export default function FinalVoiceNote() {
     });
   };
 
-
-    const [flowerPicked, setFlowerPicked] =
-      useState(false);
-
-    const [giftPoint, setGiftPoint] =
-      useState<{
-        x: number;
-        y: number;
-      } | null>(null);
-
-    const [breezeGiftActive, setBreezeGiftActive] =
-      useState(false);
       useEffect(() => {
     const audio = audioRef.current;
 
@@ -181,7 +195,7 @@ export default function FinalVoiceNote() {
         audio.readyState,
       );
     };
-
+   
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
@@ -235,7 +249,7 @@ export default function FinalVoiceNote() {
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
-
+    setFinalFlowerLanded(false);
     if (!audio || !waveformReady) return;
 
     if (!audio.paused) {
@@ -249,8 +263,19 @@ export default function FinalVoiceNote() {
       setCurrentTime(0);
       setAudioEnded(false);
       setFinished(false);
+
       setFlowerBloomed(false);
+      setFlowerPicked(false);
+
+      setBreezeGiftActive(false);
+      setGiftPoint(null);
+
       setSparkFlight(null);
+      setFinalFlowerLanded(false);
+
+      setFlowerAnimationRun(
+        (run) => run + 1,
+      );
     }
 
     try {
@@ -290,19 +315,37 @@ export default function FinalVoiceNote() {
 
     if (!audio) return;
 
+    audio.pause();
     audio.currentTime = 0;
+
     setCurrentTime(0);
+    setIsPlaying(false);
 
     setAudioEnded(false);
     setFinished(false);
+
     setFlowerBloomed(false);
+    setFlowerPicked(false);
+
+    setBreezeGiftActive(false);
+    setGiftPoint(null);
+
     setSparkFlight(null);
+
+    setFinalFlowerLanded(false);
+
+    setFlowerAnimationRun(
+      (run) => run + 1,
+    );
 
     try {
       await audio.play();
       setIsPlaying(true);
     } catch (error) {
-      console.error("Unable to replay voice note:", error);
+      console.error(
+        "Unable to replay voice note:",
+        error,
+      );
     }
   };
 
@@ -332,11 +375,34 @@ export default function FinalVoiceNote() {
           type="audio/mpeg"
         />
       </audio>
+      <BreezeFlowerGift
+        key={flowerAnimationRun}
+        active={breezeGiftActive}
+        sourcePoint={giftPoint}
 
+        getLandingRect={() =>
+          finalFlowerTargetRef.current?.getBoundingClientRect() ??
+          null
+        }
 
-      <audio ref={audioRef} preload="auto">
-        <source src="/audio/letter.mp3" type="audio/mpeg" />
-      </audio>
+        onEndReveal={() => {
+          setFinished(true);
+        }}
+
+        onRequestScroll={() => {
+          requestAnimationFrame(() => {
+            finalSectionRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          });
+        }}
+
+        onComplete={() => {
+          setFinalFlowerLanded(true);
+          setBreezeGiftActive(false);
+        }}
+      />
 
       {/* ================================= */}
       {/* FLYING LIGHT */}
@@ -378,8 +444,9 @@ export default function FinalVoiceNote() {
               setSparkFlight(null);
 
               window.setTimeout(() => {
-                setFinished(true);
-              }, 3200);
+                setFlowerPicked(true);
+                setBreezeGiftActive(true);
+              }, 850);
             }}
           >
             <motion.div
@@ -1018,14 +1085,9 @@ export default function FinalVoiceNote() {
               md:w-40
             "
           >
+          {!flowerPicked && !breezeGiftActive && (
            <GrowingDoodle
-            stage={
-              flowerPicked
-                ? 4
-                : flowerBloomed
-                  ? 6
-                  : 5
-            }
+            stage={flowerBloomed ? 6 : 5}
             className="
               inset-0
               h-full
@@ -1033,6 +1095,7 @@ export default function FinalVoiceNote() {
               opacity-45
             "
           />
+          )}
 
             <AnimatePresence>
               {flowerBloomed && (
@@ -1067,89 +1130,370 @@ export default function FinalVoiceNote() {
           </div>
         </motion.div>
 
-        {/* ================================= */}
-        {/* ENDING */}
+       {/* ================================= */}
+        {/* FINAL PAGE */}
         {/* ================================= */}
 
         <AnimatePresence>
           {finished && (
             <motion.div
+              ref={finalSectionRef}
               initial={{
                 opacity: 0,
-                y: 60,
               }}
               animate={{
                 opacity: 1,
-                y: 0,
+              }}
+              exit={{
+                opacity: 0,
               }}
               transition={{
-                duration: 1.3,
-                ease: [0.16, 1, 0.3, 1],
+                duration: 1,
               }}
               className="
+                relative
                 mx-auto
-                mt-56
-                max-w-4xl
+                mt-48
+                min-h-[900px]
+                max-w-6xl
+                overflow-hidden
+                px-4
+                pb-40
+                pt-28
                 text-center
-                md:mt-72
+                md:mt-64
+                md:min-h-[1050px]
+                md:px-12
+                md:pt-40
               "
             >
-              <p className="chapter-label text-black/30">chapter 41</p>
+              {/* ================================= */}
+              {/* GIANT FAINT 41 */}
+              {/* ================================= */}
+
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  scale: 1.08,
+                  filter: "blur(10px)",
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  filter: "blur(0px)",
+                }}
+                transition={{
+                  duration: 1.8,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="
+                  pointer-events-none
+                  absolute
+                  left-1/2
+                  top-[38%]
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  font-display
+                  text-[20rem]
+                  font-light
+                  leading-none
+                  tracking-[-0.1em]
+                  text-[#c7aa68]/[0.07]
+                  md:text-[38rem]
+                "
+              >
+                41
+              </motion.div>
+
+              {/* faint frame */}
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  scale: 0.96,
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                transition={{
+                  delay: 0.25,
+                  duration: 1.2,
+                }}
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-x-3
+                  inset-y-8
+                  border
+                  border-[#b99c5c]/15
+                  md:inset-x-10
+                "
+              />
+
+              {/* corner manuscript marks */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  delay: 0.5,
+                  duration: 1,
+                }}
+                className="
+                  chapter-label
+                  absolute
+                  left-8
+                  top-12
+                  text-[#9a7f48]/45
+                  md:left-16
+                "
+              >
+                private edition
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  delay: 0.65,
+                  duration: 1,
+                }}
+                className="
+                  chapter-label
+                  absolute
+                  right-8
+                  top-12
+                  text-[#9a7f48]/45
+                  md:right-16
+                "
+              >
+                vol. 01 / 41 months
+              </motion.p>
+
+              {/* ================================= */}
+              {/* MAIN COPY */}
+              {/* ================================= */}
+
+              <motion.p
+                initial={{
+                  opacity: 0,
+                  y: 10,
+                  letterSpacing: "0.35em",
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  letterSpacing: "0.22em",
+                }}
+                transition={{
+                  delay: 0.35,
+                  duration: 1,
+                }}
+                className="
+                  chapter-label
+                  relative
+                  z-10
+                  text-[#a4864c]/70
+                "
+              >
+                chapter 41
+              </motion.p>
 
               <motion.h3
                 initial={{
                   opacity: 0,
-                  letterSpacing: "0.15em",
+                  y: 35,
+                  scale: 0.96,
                 }}
                 animate={{
                   opacity: 1,
-                  letterSpacing: "-0.04em",
+                  y: 0,
+                  scale: 1,
                 }}
                 transition={{
-                  delay: 0.45,
+                  delay: 0.55,
                   duration: 1.3,
+                  ease: [0.16, 1, 0.3, 1],
                 }}
                 className="
+                  relative
+                  z-10
+                  mt-8
                   font-display
-                  mt-6
-                  text-8xl
+                  text-[clamp(6rem,17vw,14rem)]
                   font-light
-                  md:text-[11rem]
+                  leading-[0.7]
+                  tracking-[-0.06em]
+                  text-black/75
                 "
               >
                 END
               </motion.h3>
+                {/* ================================= */}
+                {/* FLOWER'S PERMANENT HOME */}
+                {/* ================================= */}
 
-              {/* Fake ending */}
-              <div className="relative mx-auto mt-20 w-fit">
+                <div
+                  ref={finalFlowerTargetRef}
+                  className="
+                    relative
+                    z-20
+                    mx-auto
+                    mt-10
+                    h-52
+                    w-36
+
+                    md:absolute
+                    md:right-[7%]
+                    md:top-[13%]
+                    md:mt-0
+                    md:h-72
+                    md:w-48
+                  "
+                >
+                  <AnimatePresence>
+                    {finalFlowerLanded && (
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                        }}
+                        animate={{
+                          opacity: 1,
+                        }}
+                        transition={{
+                          duration: 0.15,
+                        }}
+                        className="
+                          absolute
+                          inset-0
+                        "
+                      >
+                        <PremiumFinalFlower
+                          className="
+                            h-full
+                            w-full
+                          "
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              {/* hand-drawn gold slash */}
+              <motion.svg
+                viewBox="0 0 600 70"
+                fill="none"
+                className="
+                  relative
+                  z-20
+                  mx-auto
+                  mt-5
+                  w-[260px]
+                  md:w-[420px]
+                "
+              >
+                <motion.path
+                  d="
+                    M8 40
+                    C112 24 213 46 315 31
+                    C407 18 498 31 592 20
+                  "
+                  stroke="#b79853"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                  initial={{
+                    pathLength: 0,
+                    opacity: 0,
+                  }}
+                  animate={{
+                    pathLength: 1,
+                    opacity: 0.75,
+                  }}
+                  transition={{
+                    delay: 1.1,
+                    duration: 1.5,
+                  }}
+                />
+
+                <motion.path
+                  d="
+                    M15 45
+                    C125 33 229 49 322 38
+                    C412 27 509 37 587 27
+                  "
+                  stroke="#171717"
+                  strokeWidth="0.45"
+                  strokeLinecap="round"
+                  initial={{
+                    pathLength: 0,
+                    opacity: 0,
+                  }}
+                  animate={{
+                    pathLength: 1,
+                    opacity: 0.18,
+                  }}
+                  transition={{
+                    delay: 1.3,
+                    duration: 1.7,
+                  }}
+                />
+              </motion.svg>
+
+              {/* ================================= */}
+              {/* FAKE ENDING */}
+              {/* ================================= */}
+
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: 18,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay: 1.65,
+                  duration: 1,
+                }}
+                className="
+                  relative
+                  z-10
+                  mx-auto
+                  mt-24
+                  w-fit
+                "
+              >
                 <p
                   className="
                     font-display
                     text-3xl
                     italic
-                    text-black/40
+                    text-black/35
                     md:text-5xl
                   "
                 >
                   our story is over.
                 </p>
 
-                <svg
+                <motion.svg
                   viewBox="0 0 500 60"
                   fill="none"
                   className="
                     absolute
                     left-1/2
                     top-1/2
-                    w-[108%]
+                    w-[110%]
                     -translate-x-1/2
                     -translate-y-1/2
                   "
                 >
                   <motion.path
-                    d="M7 34C99 20 195 35 292 25C372 17 432 27 493 19"
-                    stroke="#7a263a"
-                    strokeWidth="1.5"
+                    d="
+                      M7 34
+                      C99 20 195 35 292 25
+                      C372 17 432 27 493 19
+                    "
+                    stroke="#b79853"
+                    strokeWidth="1.4"
                     strokeLinecap="round"
                     initial={{
                       pathLength: 0,
@@ -1158,68 +1502,91 @@ export default function FinalVoiceNote() {
                       pathLength: 1,
                     }}
                     transition={{
-                      delay: 1.3,
-                      duration: 1.5,
+                      delay: 2.2,
+                      duration: 1.3,
                     }}
                   />
-                </svg>
-              </div>
+                </motion.svg>
+              </motion.div>
 
               <motion.p
                 initial={{
                   opacity: 0,
-                  y: 10,
+                  y: 14,
                 }}
                 animate={{
                   opacity: 1,
                   y: 0,
                 }}
                 transition={{
-                  delay: 2.5,
+                  delay: 2.9,
                   duration: 1,
                 }}
                 className="
                   font-display
+                  relative
+                  z-10
                   mt-10
-                  text-3xl
+                  text-4xl
                   italic
-                  text-black/70
-                  md:text-5xl
+                  text-black/72
+                  md:text-6xl
                 "
               >
                 our story isn&apos;t.
               </motion.p>
 
-              {/* To be continued */}
+              {/* ================================= */}
+              {/* TO BE CONTINUED */}
+              {/* ================================= */}
+
               <motion.div
                 initial={{
                   opacity: 0,
+                  y: 30,
                 }}
                 animate={{
                   opacity: 1,
+                  y: 0,
                 }}
                 transition={{
-                  delay: 3.5,
+                  delay: 3.6,
                   duration: 1.2,
+                  ease: [0.16, 1, 0.3, 1],
                 }}
-                className="mt-40"
+                className="
+                  relative
+                  z-10
+                  mt-44
+                "
               >
-                <p className="chapter-label text-[#7a263a]/55">
+                <p
+                  className="
+                    font-handwriting
+                    text-4xl
+                    text-[#987a3e]/75
+                    md:text-5xl
+                  "
+                >
                   to be continued...
                 </p>
 
-                <svg
+                <motion.svg
                   viewBox="0 0 400 50"
                   fill="none"
                   className="
                     mx-auto
-                    mt-6
+                    mt-2
                     w-52
                   "
                 >
                   <motion.path
-                    d="M7 26C92 17 181 30 267 21C311 17 348 21 393 16"
-                    stroke="#171717"
+                    d="
+                      M7 26
+                      C92 17 181 30 267 21
+                      C311 17 348 21 393 16
+                    "
+                    stroke="#b79853"
                     strokeWidth="0.8"
                     strokeLinecap="round"
                     initial={{
@@ -1229,11 +1596,11 @@ export default function FinalVoiceNote() {
                       pathLength: 1,
                     }}
                     transition={{
-                      delay: 3.8,
-                      duration: 1.5,
+                      delay: 4,
+                      duration: 1.4,
                     }}
                   />
-                </svg>
+                </motion.svg>
 
                 <motion.p
                   initial={{
@@ -1243,20 +1610,45 @@ export default function FinalVoiceNote() {
                     opacity: 1,
                   }}
                   transition={{
-                    delay: 4.3,
+                    delay: 4.6,
                     duration: 1,
                   }}
                   className="
-                    mt-14
+                    mt-16
                     text-[9px]
                     uppercase
-                    tracking-[0.35em]
+                    tracking-[0.38em]
                     text-black/20
                   "
                 >
-                  made only for you
+                  currently being written.
                 </motion.p>
               </motion.div>
+
+              {/* bottom signature */}
+              <motion.p
+                initial={{
+                  opacity: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                }}
+                transition={{
+                  delay: 5.1,
+                  duration: 1,
+                }}
+                className="
+                  chapter-label
+                  absolute
+                  bottom-12
+                  left-1/2
+                  -translate-x-1/2
+                  whitespace-nowrap
+                  text-[#9b814b]/40
+                "
+              >
+                K &amp; R / still ongoing
+              </motion.p>
             </motion.div>
           )}
         </AnimatePresence>

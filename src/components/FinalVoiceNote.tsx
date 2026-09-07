@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import GrowingDoodle from "@/components/GrowingDoodle";
-import StickManGift from "@/components/StickManGift";
+import BreezeFlowerGift from "@/components/BreezeFlowerGift";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "00:00";
@@ -81,7 +81,7 @@ export default function FinalVoiceNote() {
   const waveformRef = useRef<SVGPathElement | null>(null);
   const waveformAreaRef = useRef<HTMLDivElement | null>(null);
   const flowerTargetRef = useRef<HTMLDivElement | null>(null);
-
+  
   const [lightPoint, setLightPoint] = useState({
     x: 0,
     y: 70,
@@ -119,7 +119,14 @@ export default function FinalVoiceNote() {
 
     const waveformRect = waveformArea.getBoundingClientRect();
     const flowerRect = flowerTarget.getBoundingClientRect();
-
+    setGiftPoint({
+      x:
+        flowerRect.left +
+        flowerRect.width * 0.52,
+      y:
+        flowerRect.top +
+        flowerRect.height * 0.2,
+    });
     setSparkFlight({
       startX: waveformRect.right - 3,
       startY: waveformRect.top + waveformRect.height * 0.5,
@@ -128,7 +135,19 @@ export default function FinalVoiceNote() {
     });
   };
 
-  useEffect(() => {
+
+    const [flowerPicked, setFlowerPicked] =
+      useState(false);
+
+    const [giftPoint, setGiftPoint] =
+      useState<{
+        x: number;
+        y: number;
+      } | null>(null);
+
+    const [breezeGiftActive, setBreezeGiftActive] =
+      useState(false);
+      useEffect(() => {
     const audio = audioRef.current;
 
     if (!audio) return;
@@ -314,7 +333,6 @@ export default function FinalVoiceNote() {
         />
       </audio>
 
-      <StickManGift active={flowerBloomed} />
 
       <audio ref={audioRef} preload="auto">
         <source src="/audio/letter.mp3" type="audio/mpeg" />
@@ -1000,10 +1018,21 @@ export default function FinalVoiceNote() {
               md:w-40
             "
           >
-            <GrowingDoodle
-              stage={flowerBloomed ? 6 : 5}
-              className="inset-0 h-full w-full opacity-45"
-            />
+           <GrowingDoodle
+            stage={
+              flowerPicked
+                ? 4
+                : flowerBloomed
+                  ? 6
+                  : 5
+            }
+            className="
+              inset-0
+              h-full
+              w-full
+              opacity-45
+            "
+          />
 
             <AnimatePresence>
               {flowerBloomed && (

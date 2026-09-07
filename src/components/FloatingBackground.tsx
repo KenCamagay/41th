@@ -407,67 +407,33 @@ export default function FloatingBackground() {
 
 useEffect(() => {
   const groups = Array.from(
-    { length: 7 },
-    (_, index) => ({
-      id: index,
+  { length: 10 },
+  (_, index) => ({
+    id: index,
 
-      top: randomBetween(8, 82),
+    top: randomBetween(8, 82),
 
-      leftStart: randomBetween(
-        -50,
-        -20,
-      ),
+    leftStart: randomBetween(-50, -20),
 
-      width: randomBetween(
-        150,
-        270,
-      ),
+    width: randomBetween(150, 270),
 
-      scale: randomBetween(
-        0.75,
-        1.15,
-      ),
+    scale: randomBetween(0.75, 1.15),
 
-      /*
-        IMPORTANT:
-        much more subtle than before
-      */
-      opacity: randomBetween(
-        0.08,
-        0.055,
-      ),
+    opacity: randomBetween(0.16, 0.28),
 
-      delay: randomBetween(
-        0,
-        7,
-      ),
+    delay: randomBetween(0, 3.5),
 
-      duration: randomBetween(
-        13,
-        20,
-      ),
+    duration: randomBetween(9, 14),
 
-      repeatDelay: randomBetween(
-        2,
-        6,
-      ),
+    repeatDelay: randomBetween(0.6, 2),
 
-      yDrift: randomBetween(
-        -10,
-        10,
-      ),
+    yDrift: randomBetween(-10, 10),
 
-      rotate: randomBetween(
-        -4,
-        4,
-      ),
+    rotate: randomBetween(-4, 4),
 
-      variant:
-        Math.floor(
-          randomBetween(0, 3),
-        ),
-    }),
-  );
+    variant: Math.floor(randomBetween(0, 3)),
+  }),
+);
 
   setWindGroups(groups);
 }, []);
@@ -513,9 +479,9 @@ useEffect(() => {
 
             opacity: [
               0,
-              group.opacity * 0.85,
+              group.opacity * 0.95,
               group.opacity,
-              group.opacity * 0.8,
+              group.opacity * 0.85,
               0,
             ],
           }}
@@ -528,9 +494,10 @@ useEffect(() => {
 
             times: [
               0,
-              0.14,
-              0.4,
-              0.78,
+              0.1,
+              0.28,
+              0.58,
+              0.82,
               1,
             ],
 
